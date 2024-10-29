@@ -1,27 +1,47 @@
 <?php
 
-class Boot
-{
-    public function __construct()
-    {
-        $url = isset($_GET['url']) ? $_GET['url'] : 'home/index';
-        $url = $this->parseUrl($url);
-        
-        $controllerName = ucfirst($url[0]) . 'Controller';
-        $controllerPath = '../app/controllers/' . $controllerName . '.php';
+require "Controller.php";
 
-        if (file_exists($controllerPath)) {
-            require_once $controllerPath;
-            $controller = new $controllerName;
-            $method = isset($url[1]) ? $url[1] : 'index';
-            if (method_exists($controller, $method)) {
-                unset($url[0], $url[1]);
-                call_user_func_array([$controller, $method], $url ? array_values($url) : []);
-            }
-        } else {
-            echo "Controller not found!";
+class Boot{
+    protected $controller = 'Index';
+    protected $action = 'index';
+    protected $params = [];
+    
+    public function __construct(){
+        // echo "booting sukses";
+
+        $url = $_GET['r'];
+        $url = $this->parseUrl($url);
+
+        if (file_exists('apps/controllers/' . $url[0] . '.php')) {
+            $this->controller = $url[0];
+            unset($url[0]);
         }
+
+        require('apps/controllers/' . $this->controller . '.php');
+        $this->controller = new $this->controller;
+
+        if (isset($url[1])) {
+            if (method_exists($this->controller, $url[1])){
+                $this->action = $url[1];
+                unset($url[1]);
+            }
+        }
+
+        if (!empty($url)) {
+            $this->params = array_values($url);
+        }
+
+        call_user_func_array([$this->controller, $this->action], $this->params);
+     
     }
+    
+    public function parseUrl($url) {
+        $url = rtrim($url, '/');
+        $url = filter_var($url, FILTER_SANITIZE_URL);
+        return explode('/', $url);
+    }
+}
 
     public function parseUrl($url)
     {
